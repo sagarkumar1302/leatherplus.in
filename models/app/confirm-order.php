@@ -79,11 +79,15 @@ if (isset($_SESSION['cart'])) {
 
             // Prepare products array in Shipway's required format
             $products = [];
-            foreach ($_SESSION['cart'] as $prodId => $qty) {
-                $res = $database->getData("SELECT * FROM products WHERE prod_id = '$prodId' AND prod_status = 1");
+            foreach ($_SESSION['cart'] as $item) {
+                $prodId = $item['product_id'];
+                $qty = $item['qty'];
+
+                $res = $database->getData("SELECT * FROM products WHERE prod_id = '$prodId' ");
                 if ($res && mysqli_num_rows($res) > 0) {
                     $p = mysqli_fetch_assoc($res);
                     $price = $p['prod_saleprice'] > 0 ? $p['prod_saleprice'] : $p['prod_regularprice'];
+
                     $products[] = [
                         "product" => htmlspecialchars($p['prod_title']),
                         "price" => strval($price),
@@ -95,6 +99,8 @@ if (isset($_SESSION['cart'])) {
                     ];
                 }
             }
+
+
 
             // Prepare Shipway request body (common for COD + Prepaid success page)
             $firstName = strtok($fullname, ' ');
@@ -137,9 +143,9 @@ if (isset($_SESSION['cart'])) {
                 "box_length" => "20",
                 "box_breadth" => "15",
                 "box_height" => "10",
-                "order_date" => date("Y-m-d H:i:s")
+                "order_date" => date("Y-m-d H:i:s"),
             ];
-
+            $data['products'] = $products;
             // Payment handling
             if (strtolower($payment_mode) === 'cod') {
                 // ✅ COD Orders → Call Shipway immediately
@@ -149,6 +155,8 @@ if (isset($_SESSION['cart'])) {
                     'info@leatherplus.in',
                     'y983VSB2Tn34tW3xv0u4687rVk1keKq8'
                 );
+                // file_put_contents(__DIR__ . "/shipway_debug.log", print_r($response, true), FILE_APPEND);
+
                 $aisensy_data = [
                     "apiKey" => "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YjZhYzcyZGZkZGU0MGMzMWNlZGM3ZSIsIm5hbWUiOiJTdGFyIE9ubGluZSBJbmMiLCJhcHBOYW1lIjoiQWlTZW5zeSIsImNsaWVudElkIjoiNjhiNmFjNzJkZmRkZTQwYzMxY2VkYzc5IiwiYWN0aXZlUGxhbiI6IkZSRUVfRk9SRVZFUiIsImlhdCI6MTc1NjgwMjE2Mn0.u9B4-RskS_j2QezAZt09rmI7O7-x76t-fB_lX7HCpws", // 👈 Replace with your actual API key
                     "campaignName" => "Leatherplus",
